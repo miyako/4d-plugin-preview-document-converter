@@ -21,8 +21,8 @@ PREVIEW DOCUMENT TO PDF (src;dst)
 
 Parameter|Type|Description
 ------------|------------|----
-src|TEXT|
-dst|TEXT|
+src|TEXT|path (HFS)
+dst|TEXT|path (HFS)
 
 Effectively the same operation as the ``AppleScript`` code below:
 
