@@ -13,8 +13,10 @@
 #include "4DPlugin.h"
 
 #include "Preview.h"
+#import <sys/stat.h>
 
 #define PREVIEW_APP_ID @"com.apple.Preview"
+#define EXPORT_TIMEOUT 120
 
 void PluginMain(PA_long32 selector, PA_PluginParameters params)
 {
@@ -45,30 +47,6 @@ void CommandDispatcher (PA_long32 pProcNum, sLONG_PTR *pResult, PackagePtr pPara
 	}
 }
 
-#pragma mark -
-
-void hideAppWithBundleIdentifier(NSString *identifier)
-{
-	NSArray *runningApplications = [NSRunningApplication runningApplicationsWithBundleIdentifier:identifier];
-	
-	for (NSRunningApplication *app in runningApplications)
-	{
-		[app hide];
-		
-		//old api
-		/*
-		 pid_t pid = [app processIdentifier];
-		 ProcessSerialNumber psn;
-		 if(noErr == GetProcessForPID(pid, &psn))
-		 {
-			ShowHideProcess(&psn, NO);
-			NSLog(@"hiding process:%i (%@)\n", pid, identifier);
-		 }
-		 */
-		//don't break because there may be multiple instances
-	}
-}
-
 void method1(C_TEXT& Param1, C_TEXT& Param2)
 {
 	//scripting bridge
@@ -81,6 +59,8 @@ void method1(C_TEXT& Param1, C_TEXT& Param2)
 	
 	@autoreleasepool
 	{
+		NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
+		NSTimeInterval end = now + EXPORT_TIMEOUT;
 		NSURL *appUrl = [[NSWorkspace sharedWorkspace]URLForApplicationWithBundleIdentifier:PREVIEW_APP_ID];
 		
 		if(noErr == LSCanURLAcceptURL((CFURLRef)url, (CFURLRef)appUrl, kLSRolesViewer, kLSAcceptDefault, &accepts))
@@ -90,7 +70,25 @@ void method1(C_TEXT& Param1, C_TEXT& Param2)
 				//this will unhide the hidden app
 				PreviewDocument *document = [application open:url];
 				
-				[document saveAs:@"com.adobe.pdf" in:path];
+				Boolean empty = true;
+				struct stat stat1;
+				
+				[[NSFileManager defaultManager]removeItemAtURL:path error:nil];
+				
+				do {
+					
+					[document saveAs:@"com.adobe.pdf" in:path];
+					
+					
+					if(!stat([[path path]fileSystemRepresentation], &stat1))
+					{
+						//minimum pdf seems to be 920 bytes
+						empty = (stat1.st_size) < 1000;
+					}
+					
+					PA_YieldAbsolute();
+				}while(empty && ([NSDate timeIntervalSinceReferenceDate] < end));
+				
 				[document closeSaving:PreviewSavoNo savingIn:url];
 			}
 		}
@@ -107,7 +105,7 @@ void method2(C_TEXT& Param1, C_TEXT& Param2)
 	
 	NSString *script =
 	@"on convert_to_pdf(src_path, dst_path) \n\
-	tell application \"Preview\" \n\
+	tell application id \"com.apple.Preview\" \n\
 	set d to open (POSIX file src_path as alias) \n\
 	save d as \"com.adobe.pdf\" in POSIX file dst_path \n\
 	close d saving no \n\
@@ -159,7 +157,7 @@ void PREVIEW_DOCUMENT_TO_PDF(sLONG_PTR *pResult, PackagePtr pParams)
 {
 	C_TEXT Param1;
 	C_TEXT Param2;
-
+	
 	Param1.fromParamAtIndex(pParams, 1);
 	Param2.fromParamAtIndex(pParams, 2);
 
