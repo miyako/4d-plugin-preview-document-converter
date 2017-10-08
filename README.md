@@ -38,6 +38,23 @@ end convert_to_pdf
 convert_to_pdf("/Users/miyako/Desktop/test.pptx", "/Users/miyako/Desktop/test.pdf")
 ```
 
+## Examples
+
+```
+  //to prepare the app for scripting bridge
+  //-g: Do not bring the application to the foreground
+  //-j: Launches the app hidden
+  //-F: Opens the application fresh, without restoring windows
+  //-b: bundle_indentifier
+
+LAUNCH EXTERNAL PROCESS("/usr/bin/open -g -j -F -b com.apple.preview")
+
+$src:=System folder(Desktop)+"test.pptx"
+$dst:=System folder(Desktop)+"test.pdf"
+
+PREVIEW DOCUMENT TO PDF ($src;$dst)
+```
+
 ### Discussion
 
 Preview has the capability to display various document types, including the following. It can also save them as ``PDF``.
