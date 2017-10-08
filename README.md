@@ -15,7 +15,7 @@ Convert document to PDF with Preview.app
 
 Preview creates an empty PDF the rendering/conversion is incomplete (the display is asynchronous).
 
-**TODO**: Hold ``close`` and repeat while the result document is empty..?
+**TODO**: ~~Hold ``close`` and repeat while the result document is empty..?~~ retry for ``120`` seconds while file size is <1 ``1000`` (empty PDF is ``920`` bytes). 
 
 ---
 
