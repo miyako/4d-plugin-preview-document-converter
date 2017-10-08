@@ -17,6 +17,7 @@
 
 #define PREVIEW_APP_ID @"com.apple.Preview"
 #define EXPORT_TIMEOUT 120
+#define EXPORT_SLEEP 3
 
 void PluginMain(PA_long32 selector, PA_PluginParameters params)
 {
@@ -84,6 +85,12 @@ void method1(C_TEXT& Param1, C_TEXT& Param2)
 					{
 						//minimum pdf seems to be 920 bytes
 						empty = (stat1.st_size) < 1000;
+					}
+					
+					if(empty)
+					{
+						//wait
+						PA_PutProcessToSleep(PA_GetCurrentProcessNumber(), EXPORT_SLEEP);
 					}
 					
 					PA_YieldAbsolute();
