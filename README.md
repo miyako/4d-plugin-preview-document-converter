@@ -11,11 +11,11 @@ Convert document to PDF with Preview.app
 
 <img src="https://cloud.githubusercontent.com/assets/1725068/18940649/21945000-8645-11e6-86ed-4a0f800e5a73.png" width="32" height="32" /> <img src="https://cloud.githubusercontent.com/assets/1725068/18940648/2192ddba-8645-11e6-864d-6d5692d55717.png" width="32" height="32" />
 
-### Remarks
+### Releases
 
-Preview creates an empty PDF the rendering/conversion is incomplete (the display is asynchronous).
+[1.1](https://github.com/miyako/4d-plugin-preview-document-converter/releases/tag/1.1)
 
-**TODO**: ~~Hold ``close`` and repeat while the result document is empty..?~~ retry for ``120`` seconds while file size is < ``1000`` (empty PDF is ``920`` bytes). 
+**Note**: OS X before 10.9 are [not scriptable by default](https://stackoverflow.com/questions/20052816/if-preview-app-in-os-x-is-not-applescriptable-why-does-this-work). you could [force basic scripting](https://stackoverflow.com/questions/8474657/is-osx-lion-preview-application-scriptable) but it might have negative consequences. the plugin uses [ScriptingBridge](https://developer.apple.com/documentation/scriptingbridge) by default, but falls back to [NSAppleScript](https://developer.apple.com/documentation/foundation/nsapplescript) if the OS version is 10.8 or lower.
 
 ---
 
