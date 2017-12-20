@@ -18,6 +18,7 @@
 #define PREVIEW_APP_ID @"com.apple.Preview"
 #define EXPORT_TIMEOUT 120
 #define EXPORT_SLEEP 3
+#define MAX_RETRY 3
 
 void PluginMain(PA_long32 selector, PA_PluginParameters params)
 {
@@ -48,6 +49,47 @@ void CommandDispatcher (PA_long32 pProcNum, sLONG_PTR *pResult, PackagePtr pPara
 	}
 }
 
+#include <errno.h>
+#include <sys/sysctl.h>
+
+BOOL scripting_not_supported()
+{
+	BOOL _scripting_not_supported = FALSE;
+	
+	char str[256];
+	size_t size = sizeof(str);
+	if(!sysctlbyname("kern.osrelease", str, &size, NULL, 0))
+	{
+		@autoreleasepool
+		{
+			NSString *version = [NSString stringWithFormat:@"%s", str];
+			NSLog(@"kern.osrelease:%@", version);
+			if(([version hasPrefix:@"12."]) | ([version hasPrefix:@"11."]) | ([version hasPrefix:@"10."]))
+			{
+				_scripting_not_supported = TRUE;
+			}
+		}
+	}
+	/*
+	 16.x.x  macOS 10.12.x Sierra
+	 15.x.x  OS X  10.11.x El Capitan
+	 14.x.x  OS X  10.10.x Yosemite
+	 13.x.x  OS X  10.9.x  Mavericks
+	 12.x.x  OS X  10.8.x  Mountain Lion
+	 11.x.x  OS X  10.7.x  Lion
+	 10.x.x  OS X  10.6.x  Snow Leopard
+	 9.x.x  OS X  10.5.x  Leopard
+	 8.x.x  OS X  10.4.x  Tiger
+	 7.x.x  OS X  10.3.x  Panther
+	 6.x.x  OS X  10.2.x  Jaguar
+	 5.x    OS X  10.1.x  Puma 
+	 */
+	return _scripting_not_supported;
+}
+
+
+#pragma mark -
+
 void method1(C_TEXT& Param1, C_TEXT& Param2)
 {
 	//scripting bridge
@@ -60,8 +102,6 @@ void method1(C_TEXT& Param1, C_TEXT& Param2)
 	
 	@autoreleasepool
 	{
-		NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
-		NSTimeInterval end = now + EXPORT_TIMEOUT;
 		NSURL *appUrl = [[NSWorkspace sharedWorkspace]URLForApplicationWithBundleIdentifier:PREVIEW_APP_ID];
 		
 		if(noErr == LSCanURLAcceptURL((CFURLRef)url, (CFURLRef)appUrl, kLSRolesViewer, kLSAcceptDefault, &accepts))
@@ -70,31 +110,27 @@ void method1(C_TEXT& Param1, C_TEXT& Param2)
 			{
 				//this will unhide the hidden app
 				PreviewDocument *document = [application open:url];
-				
-				Boolean empty = true;
+			
 				struct stat stat1;
 				
 				[[NSFileManager defaultManager]removeItemAtURL:path error:nil];
 				
-				do {
-					
+				for(int i = 0; i < MAX_RETRY;i++)
+				{
 					[document saveAs:@"com.adobe.pdf" in:path];
-					
 					
 					if(!stat([[path path]fileSystemRepresentation], &stat1))
 					{
 						//minimum pdf seems to be 920 bytes
-						empty = (stat1.st_size) < 1000;
+						if((stat1.st_size) < 1000)
+						{
+							NSLog(@"file size is:%lld on call %d", stat1.st_size, i);
+							PA_PutProcessToSleep(PA_GetCurrentProcessNumber(), EXPORT_SLEEP);
+							continue;
+						}
+						break;
 					}
-					
-					if(empty)
-					{
-						//wait
-						PA_PutProcessToSleep(PA_GetCurrentProcessNumber(), EXPORT_SLEEP);
-					}
-					
-					PA_YieldAbsolute();
-				}while(empty && ([NSDate timeIntervalSinceReferenceDate] < end));
+				}
 				
 				[document closeSaving:PreviewSavoNo savingIn:url];
 			}
@@ -109,6 +145,7 @@ void method2(C_TEXT& Param1, C_TEXT& Param2)
 {
 	NSString *src = Param1.copyPath();
 	NSString *dst = Param2.copyPath();
+	NSURL *url = Param1.copyUrl();
 	
 	NSString *script =
 	@"on convert_to_pdf(src_path, dst_path) \n\
@@ -120,40 +157,70 @@ void method2(C_TEXT& Param1, C_TEXT& Param2)
 	end convert_to_pdf";
 	
 	NSAppleScript *scriptObject = [[NSAppleScript alloc]initWithSource:script];
+	
+	Boolean accepts = false;
+	
 	@autoreleasepool
 	{
-		NSAppleEventDescriptor *parameters = [NSAppleEventDescriptor listDescriptor];
-		NSAppleEventDescriptor *src_path = [NSAppleEventDescriptor descriptorWithString:src];
-		[parameters insertDescriptor:src_path atIndex:1];
-		NSAppleEventDescriptor *dst_path = [NSAppleEventDescriptor descriptorWithString:dst];
-		[parameters insertDescriptor:dst_path atIndex:2];
-		
-		ProcessSerialNumber psn = {0, kCurrentProcess};
-		NSAppleEventDescriptor *target =
-		[NSAppleEventDescriptor descriptorWithDescriptorType:typeProcessSerialNumber
-																									 bytes:&psn
-																									length:sizeof(ProcessSerialNumber)];
-		
-		NSAppleEventDescriptor *handler = [NSAppleEventDescriptor descriptorWithString:@"convert_to_pdf"];
-		
-		NSAppleEventDescriptor *event =
-		[NSAppleEventDescriptor appleEventWithEventClass:kASAppleScriptSuite
-																						 eventID:kASSubroutineEvent
-																		targetDescriptor:target
-																						returnID:kAutoGenerateReturnID
-																			 transactionID:kAnyTransactionID];
-		
-		[event setParamDescriptor:handler forKeyword:keyASSubroutineName];
-		[event setParamDescriptor:parameters forKeyword:keyDirectObject];
-		
-		if([scriptObject compileAndReturnError:nil])
+		NSURL *appUrl = [[NSWorkspace sharedWorkspace]URLForApplicationWithBundleIdentifier:PREVIEW_APP_ID];
+	
+		if(noErr == LSCanURLAcceptURL((CFURLRef)url, (CFURLRef)appUrl, kLSRolesViewer, kLSAcceptDefault, &accepts))
 		{
-			[scriptObject executeAppleEvent:event error:nil];
-			
+			if(accepts)
+			{
+				[[NSFileManager defaultManager]removeItemAtPath:dst error:nil];
+				NSAppleEventDescriptor *parameters = [NSAppleEventDescriptor listDescriptor];
+				NSAppleEventDescriptor *src_path = [NSAppleEventDescriptor descriptorWithString:src];
+				[parameters insertDescriptor:src_path atIndex:1];
+				NSAppleEventDescriptor *dst_path = [NSAppleEventDescriptor descriptorWithString:dst];
+				[parameters insertDescriptor:dst_path atIndex:2];
+				
+				ProcessSerialNumber psn = {0, kCurrentProcess};
+				NSAppleEventDescriptor *target =
+				[NSAppleEventDescriptor descriptorWithDescriptorType:typeProcessSerialNumber
+																											 bytes:&psn
+																											length:sizeof(ProcessSerialNumber)];
+				
+				NSAppleEventDescriptor *handler = [NSAppleEventDescriptor descriptorWithString:@"convert_to_pdf"];
+				
+				NSAppleEventDescriptor *event =
+				[NSAppleEventDescriptor appleEventWithEventClass:kASAppleScriptSuite
+																								 eventID:kASSubroutineEvent
+																				targetDescriptor:target
+																								returnID:kAutoGenerateReturnID
+																					 transactionID:kAnyTransactionID];
+				
+				[event setParamDescriptor:handler forKeyword:keyASSubroutineName];
+				[event setParamDescriptor:parameters forKeyword:keyDirectObject];
+				
+				if([scriptObject compileAndReturnError:nil])
+				{
+					struct stat stat1;
+					const char *path = [dst UTF8String];
+					
+					for(int i = 0; i < MAX_RETRY;i++)
+					{
+						[scriptObject executeAppleEvent:event error:nil];
+						
+						if(!stat(path, &stat1))
+						{
+							//minimum pdf seems to be 920 bytes
+							if((stat1.st_size) < 1000)
+							{
+								NSLog(@"file size is:%lld on call %d", stat1.st_size, i);
+								PA_PutProcessToSleep(PA_GetCurrentProcessNumber(), EXPORT_SLEEP);
+								continue;
+							}
+							break;
+						}
+					}
+				}
+			}
 		}
 	}
 	[scriptObject release];
 	
+	[url release];
 	[src release];
 	[dst release];
 }
@@ -167,7 +234,14 @@ void PREVIEW_DOCUMENT_TO_PDF(sLONG_PTR *pResult, PackagePtr pParams)
 	
 	Param1.fromParamAtIndex(pParams, 1);
 	Param2.fromParamAtIndex(pParams, 2);
+	
+	if(scripting_not_supported())
+	{
+		method2(Param1, Param2);
+	}else
+	{
+		method1(Param1, Param2);
+	}
 
-	method1(Param1, Param2);
 }
 

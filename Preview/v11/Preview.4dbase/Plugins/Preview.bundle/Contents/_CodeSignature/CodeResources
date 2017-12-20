@@ -90,7 +90,7 @@
 		</data>
 		<key>Resources/Documentation/index.html</key>
 		<data>
-		JZRSXvVGmkvfHqYlGUeCG+zi7r4=
+		UfTdvyimzjShMX+LAns0frwpIFQ=
 		</data>
 		<key>Resources/Documentation/styles/common.css</key>
 		<data>
@@ -105,9 +105,9 @@
 			<key>optional</key>
 			<true/>
 		</dict>
-		<key>Resources/constants.xlf</key>
+		<key>Resources/Preview.rsrc</key>
 		<data>
-		UbZYnK1QdI2HA5cO0/aNT2a+ucQ=
+		wrIF0W6beB1sX0gjk4V6bc6nBnA=
 		</data>
 	</dict>
 	<key>files2</key>
@@ -358,11 +358,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			JZRSXvVGmkvfHqYlGUeCG+zi7r4=
+			UfTdvyimzjShMX+LAns0frwpIFQ=
 			</data>
 			<key>hash2</key>
 			<data>
-			I50EctOVlciCowo3u0EjcBnoq6tfrJBqk3mzatTyENY=
+			HVMwKXGHyrzi38e5PdAGfFQfoW+IhxqTLrmYdZGk2SA=
 			</data>
 		</dict>
 		<key>Resources/Documentation/styles/common.css</key>
@@ -389,15 +389,15 @@
 			<key>optional</key>
 			<true/>
 		</dict>
-		<key>Resources/constants.xlf</key>
+		<key>Resources/Preview.rsrc</key>
 		<dict>
 			<key>hash</key>
 			<data>
-			UbZYnK1QdI2HA5cO0/aNT2a+ucQ=
+			wrIF0W6beB1sX0gjk4V6bc6nBnA=
 			</data>
 			<key>hash2</key>
 			<data>
-			7t2nF9u/4W05GOd8UQ7QAt/PFge16k3ydWYX/6ElmJk=
+			RPoMTpT/7eAdk55i0qnSTQfHXnPgJSwmXO6SoRNr1M4=
 			</data>
 		</dict>
 		<key>Windows/Preview.4DX</key>
@@ -411,6 +411,17 @@
 			rp5mwPoToTOMBrO5g9ATVRBDkkR1XpJE6MF06FX5mo0=
 			</data>
 		</dict>
+		<key>Windows/Preview.RSR</key>
+		<dict>
+			<key>hash</key>
+			<data>
+			+DpiqSQZJ/DSCZzEn4v03uO1ycA=
+			</data>
+			<key>hash2</key>
+			<data>
+			L2tOjFZIF1IhZTLf1hS5jEqMaFh78uC8cdli+4+Q14g=
+			</data>
+		</dict>
 		<key>Windows64/Preview.4DX</key>
 		<dict>
 			<key>hash</key>
@@ -422,14 +433,16 @@
 			D81BlAXC8IYBjKsGDu0nx8Zm3OxlDG6/r2pFvj/FY7A=
 			</data>
 		</dict>
-		<key>manifest.json</key>
+		<key>Windows64/Preview.RSR</key>
 		<dict>
-			<key>cdhash</key>
+			<key>hash</key>
 			<data>
-			Xu8qMEYhixEYQDiQfoTTPo2btPI=
+			+DpiqSQZJ/DSCZzEn4v03uO1ycA=
 			</data>
-			<key>requirement</key>
-			<string>identifier manifest and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = Y69CWUC25B</string>
+			<key>hash2</key>
+			<data>
+			L2tOjFZIF1IhZTLf1hS5jEqMaFh78uC8cdli+4+Q14g=
+			</data>
 		</dict>
 	</dict>
 	<key>rules</key>
