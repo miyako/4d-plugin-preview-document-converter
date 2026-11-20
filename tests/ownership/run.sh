@@ -4,17 +4,18 @@
 #
 #   tests/ownership/run.sh <repo-root> <fixed|baseline>
 #
-# <repo-root>/Preview provides the plugin sources and the bundled 4D Plugin API.
-# The harness itself always comes from this script's directory, so the SAME
-# harness can be run against an immutable baseline (git archive of the base
-# SHA) and against the fixed tree.
+# <repo-root> provides the plugin sources and the bundled 4D Plugin API (the
+# project was flattened to the repository root). The harness itself always
+# comes from this script's directory, so the SAME harness can be run against
+# an immutable baseline (git archive of the base SHA) and against the fixed
+# tree.
 #
 # In "fixed" mode every test must pass. In "baseline" mode the tests named
 # in EXPECTED_BASELINE_FAILURES must fail and every other test (the
 # controls) must pass; anything else is a harness or model error.
 set -euo pipefail
 
-SRC=$(cd "$1/Preview" && pwd)
+SRC=$(cd "$1" && pwd)
 MODE=$2
 HERE=$(cd "$(dirname "$0")" && pwd)
 OUT=$(mktemp -d)
